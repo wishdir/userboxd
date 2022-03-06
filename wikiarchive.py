@@ -3,7 +3,6 @@
 
 import shutil
 import random
-#from slugify import slugify
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from io import BytesIO
@@ -38,6 +37,16 @@ def grab_png_screenshot_of_body(driver) -> bytes:
 def select_random_userbox(driver):
     galleryList = driver.find_elements(By.PARTIAL_LINK_TEXT, "Wikipedia:Userboxes/")
     choice = random.choice(galleryList).text
+
+    #Rerolls "userbox info" sets
+    if choice.find("Galleries") == 1:
+        return select_random_userbox(driver)
+
+    #50% chance to reroll template userboxes if pulled
+    if choice.find("Location") == 1:
+       if random.random() < 0.5:
+           return select_random_userbox(driver)
+
     currentLink = "https://en.wikipedia.org/wiki/"+choice
     print(currentLink)
     driver.get(currentLink)
@@ -152,12 +161,6 @@ final_image_file = TemporaryFile()
 blurred_image.save(final_image_file, format="PNG")
 final_image_file.seek(0)
 
-#blurred_image.save("c.png", format="PNG")
-#ubxout = slugify(ubxRandom.text)
-#with open('ubxlist/'+ubxout+'.png', 'wb') as f:
-#    f.write(ubx_png)
-#with open('currentbox.png', 'wb') as f:
-#    f.write(ubx_png)
 
 ########################
 ## 3. post to twitter ##
