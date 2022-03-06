@@ -3,7 +3,6 @@
 
 import shutil
 import random
-#from slugify import slugify
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from io import BytesIO
@@ -37,13 +36,14 @@ def grab_png_screenshot_of_body(driver) -> bytes:
 # link element (that should point to the userbox's page) and the userbox itself
 def select_random_userbox(driver):
     galleryList = driver.find_elements(By.PARTIAL_LINK_TEXT, "Wikipedia:Userboxes/")
-
-    #Removes "userbox info" sets
-    galleryList.remove(contains("Galleries"))
     choice = random.choice(galleryList).text
 
-    #50% chance to remove template userboxes if pulled
-    if choice.contains("Location"):
+    #Rerolls "userbox info" sets
+    if choice.find("Galleries") == 1:
+        return select_random_userbox(driver)
+
+    #50% chance to reroll template userboxes if pulled
+    if choice.find("Location") == 1:
        if random.random() < 0.5:
            return select_random_userbox(driver)
 
