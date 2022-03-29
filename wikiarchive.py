@@ -37,15 +37,25 @@ def grab_png_screenshot_of_body(driver) -> bytes:
 def select_random_userbox(driver):
     galleryList = driver.find_elements(By.PARTIAL_LINK_TEXT, "Wikipedia:Userboxes/")
     choice = random.choice(galleryList).text
-
-    #Rerolls "userbox info" sets
+    
+    # 50% chance to remove all location template userboxes
+    # Done to prevent default userboxes from appearing too much
+    if random.random() < 0.5 or skiplocation == True:
+        skiplocation = True
+        for item in galleryList:
+            if item.find("Location") == 1:
+                item.remove()
+    
+    # Reroll "userbox info" sets
     if choice.find("Galleries") == 1:
         return select_random_userbox(driver)
 
-    #50% chance to reroll template userboxes if pulled
-    if choice.find("Location") == 1:
-       if random.random() < 0.5:
-           return select_random_userbox(driver)
+    # TODO make sure rewrite on line 41 works lol
+    #
+    # 50% chance to reroll template userboxes if pulled
+    # if choice.find("Location") == 1:
+    #   if random.random() < 0.5:
+    #       return select_random_userbox(driver)
 
     currentLink = "https://en.wikipedia.org/wiki/"+choice
     print(currentLink)
