@@ -21,6 +21,11 @@ chrome_bin_name = "google-chrome-stable"
 ##############################
 ## 1. grab a random userbox ##
 ##############################
+# 50% chance to remove all location template userboxes
+# Done to prevent default userboxes from appearing too much
+skipLocation = False;
+if random.random() < 0.5:
+    skipLocation = True
 
 # Gets a PNG screenshot of the entire page. Should be addressable by absolute
 # (x, y).
@@ -38,10 +43,7 @@ def select_random_userbox(driver):
     galleryList = driver.find_elements(By.PARTIAL_LINK_TEXT, "Wikipedia:Userboxes/")
     choice = random.choice(galleryList).text
     
-    # 50% chance to remove all location template userboxes
-    # Done to prevent default userboxes from appearing too much
-    if random.random() < 0.5 or skiplocation == True:
-        skiplocation = True
+    if skipLocation == True:
         for item in galleryList:
             if item.find("Location") == 1:
                 item.remove()
