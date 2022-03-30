@@ -23,9 +23,7 @@ chrome_bin_name = "google-chrome-stable"
 ##############################
 # 50% chance to remove all location template userboxes
 # Done to prevent default userboxes from appearing too much
-skipLocation = False;
-if random.random() < 0.5:
-    skipLocation = True
+skipLocation = random.random() < 0.5
 
 # Gets a PNG screenshot of the entire page. Should be addressable by absolute
 # (x, y).
