@@ -44,7 +44,7 @@ def select_random_userbox(driver):
     if skipLocation == True:
         for item in galleryList:
             if item.text.find("Location") == 1:
-                item.remove()
+                galleryList.remove(item)
     
     # Reroll "userbox info" sets
     if choice.find("Galleries") == 1:
