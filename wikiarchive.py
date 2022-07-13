@@ -39,12 +39,13 @@ def grab_png_screenshot_of_body(driver) -> bytes:
 # link element (that should point to the userbox's page) and the userbox itself
 def select_random_userbox(driver):
     galleryList = driver.find_elements(By.PARTIAL_LINK_TEXT, "Wikipedia:Userboxes/")
-    choice = random.choice(galleryList).text
     
     if skipLocation == True:
         for item in galleryList:
             if item.text.find("Location") == 1:
                 galleryList.remove(item)
+    
+    choice = random.choice(galleryList).text
     
     # Reroll "userbox info" sets
     if choice.find("Galleries") == 1:
