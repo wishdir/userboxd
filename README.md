@@ -1,52 +1,73 @@
 # @userboxd
-A script that selects a random userbox from Wikipedia and posts it to Twitter.
+A script that selects a random userbox from Wikipedia and posts it to Twitter. The script may be run periodically by a service or standalone.
 
-```
-userboxd
-├── .env (credentials)
-├── userboxd.nix (NixOS expression)
-└── wikiarchive.py (actual script)
-```
+## Service setup
+This repo provides a NixOS service that will post userboxes every two hours.
 
-The script may be run periodically by a service or standalone.
+1.  Write an `.env` file with your credentials in this directory with your credentials:  
 
-## General setup
-Fairly straightforward on NixOS; simply create a `.env` in this directory with your credentials:  
+    ```
+    OAUTH_CONSUMER_KEY=twitter API key
+    OAUTH_CONSUMER_SECRET=twitter API secret
+    OAUTH_ACCESS_TOKEN=token from OAuth login
+    OAUTH_ACCESS_SECRET=secret from OAuth login
+    MASTODON_ACCESS_TOKEN=access token from mastodon application
+    ```
 
-`.env`
-```
-OAUTH_CONSUMER_KEY="twitter API key"
-OAUTH_CONSUMER_SECRET="twitter API secret"
-OAUTH_ACCESS_TOKEN="token from OAuth login"
-OAUTH_ACCESS_SECRET="secret from OAuth login"
-```
+2.  Import the module.  
 
-Dependencies are specified as part of a `nix-shell` shebang at the top of `wikiarchive.py`, and will be automatically brought in at execution time in NixOS.
+    *Usage with flakes*
+    ```nix
+    {
+        inputs = {
+            userboxd.url = "github:wishdir/userboxd";
+        };
 
-If you are not on NixOS, please make sure that these particular dependencies are installed and available to the script:
-- Python 3
-- Selenium (and associated Python module)
-- Chrome/Chromium ≥98
-- Tweepy
-- Pillow
+        output = { self, userboxd }: {
+            nixosConfigurations."..." = nixpkgs.lib.nixosSystem {
+                modules = [
+                    userboxd.nixosModule
+                ];
+            };
+        };
+    }
+    ```
 
-Please also make sure that `chrome_bin_name` in the script is set to the correct name of the Chrome binary. This is dependent on platform, and is currently set to the name of the binary on NixOS.
+    *Usage in normal configuration*
+    ```nix
+    { config, ... }:
 
-Twitter v1.1 API access is currently required for this script, as there is no way to post media via the v2 API at the time of writing.
+    {
+        imports = [
+            (import (builtins.fetchTarball "https://github.com/wishdir/userboxd/archive/refs/heads/main.tar.gz")).nixosModule
+        ];
+    }
+    ```
 
-## Service setup on NixOS
-Bring `userboxd.nix` into your imports:  
+    If you are not on NixOS, please make sure that these particular dependencies are installed and available to the script:
+    - Python 3
+    - Selenium (and associated Python module)
+    - Chrome/Chromium ≥98
 
-`configuration.nix`
-```
-{ config, ... }:
+    Python packages needed:
+    - Tweepy
+    - Mastodon.py
+    - Pillow
 
-{
-    imports = [
-        /path/to/repo/userboxd.nix
-    ];
-    ...
-}
-```
+    Please also make sure that `chrome_bin_name` in the script is set to the correct name of the Chrome binary. This is dependent on platform, and is currently set to the name of the binary on NixOS.
 
-Make sure the repo contains a `.env` populated with credentials.
+    Twitter v1.1 API access is currently required for this script, As of this time, there is no way to post media via the v2 API at the time of writing.
+
+3.  Configure the model in your system configuration:
+
+    ```nix
+    { config, ... }:
+
+    {
+        services.userboxd = {
+            enable = true;
+            envFilePath = "/path/to/.env";
+            user = "user to run under";
+        };
+    }
+    ```
