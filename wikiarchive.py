@@ -1,5 +1,4 @@
-#! /usr/bin/env nix-shell
-#! nix-shell -i python3 -p python3 python3Packages.selenium python3Packages.tweepy python3Packages.pillow chromedriver google-chrome
+#!/usr/bin/env python3
 
 import shutil
 import random
@@ -7,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 from io import BytesIO
 from tempfile import TemporaryFile
+from os import access, environ
 
 ######################
 ## 0. CONFIGURABLES ##
@@ -96,7 +96,8 @@ driver.get("https://en.wikipedia.org/wiki/Wikipedia:Userboxes/Galleries/alphabet
 
 # select a random userbox
 (ubxLink, ubxRandom) = select_random_userbox(driver)
-ubxLinkName = "{{" + ubxLink.get_attribute("text") + "}}"
+ubxLinkName = ubxLink.get_attribute("text")
+ubxAltText = ubxRandom.get_attribute("innerText").strip()
 ubxLinkHref = ubxLink.get_attribute("href").replace(' ', '%20')
 
 print(ubxLinkName)
@@ -172,38 +173,36 @@ final_image_file = TemporaryFile()
 blurred_image.save(final_image_file, format="PNG")
 final_image_file.seek(0)
 
-
 ########################
 ## 3. post to twitter ##
 ########################
 
 from tweepy import Client, API
 from tweepy.auth import OAuthHandler
-from os import access, environ
 
 # bring in credentials from environment
-consumer_key=environ.get('OAUTH_CONSUMER_KEY')
-consumer_secret=environ.get('OAUTH_CONSUMER_SECRET')
-access_token=environ.get('OAUTH_ACCESS_TOKEN')
-access_token_secret=environ.get('OAUTH_ACCESS_SECRET')
+twitter_consumer_key=environ.get('OAUTH_CONSUMER_KEY')
+twitter_consumer_secret=environ.get('OAUTH_CONSUMER_SECRET')
+twitter_access_token=environ.get('OAUTH_ACCESS_TOKEN')
+twitter_access_token_secret=environ.get('OAUTH_ACCESS_SECRET')
 #print(consumer_key, consumer_secret, access_token, access_token_secret)
 
 # init tweepy context
 client = Client(
     # credentials should be specified through envvars
-    consumer_key=consumer_key,
-    consumer_secret=consumer_secret,
-    access_token=access_token,
-    access_token_secret=access_token_secret
+    consumer_key=twitter_consumer_key,
+    consumer_secret=twitter_consumer_secret,
+    access_token=twitter_access_token,
+    access_token_secret=twitter_access_token_secret
 )
 
 # FIXME i think they changed the API for this method in latest tweepy 
 # if it breaks here update the method to the new OAuth mechanism
 auth = OAuthHandler(
-    consumer_key, 
-    consumer_secret, 
+    twitter_consumer_key, 
+    twitter_consumer_secret, 
 )
-auth.set_access_token(access_token, access_token_secret)
+auth.set_access_token(twitter_access_token, twitter_access_token_secret)
 
 api = API(auth)
 
@@ -211,6 +210,11 @@ api = API(auth)
 res_media = api.media_upload(
     filename="currentbox.png",
     file=final_image_file
+)
+
+res_media_metadata = api.create_media_metadata(
+    res_media.media_id,
+    ubxAltText
 )
 
 # make tweets using v2 endpoint
@@ -225,3 +229,33 @@ res_reply = client.create_tweet(
 )
 
 print("Tweet complete.")
+
+#########################
+## 4. post to mastodon ##
+#########################
+
+final_image_file.seek(0)
+
+mastodon_client_key=environ.get('MASTODON_CLIENT_KEY')
+mastodon_client_secret=environ.get('MASTODON_CLIENT_SECRET')
+mastodon_access_token=environ.get('MASTODON_ACCESS_TOKEN')
+
+from mastodon import Mastodon
+
+mastodon = Mastodon(
+    access_token=mastodon_access_token,
+    api_base_url = 'https://ms.beniceplease.com'
+)
+
+res_mastodon_media = mastodon.media_post(
+    final_image_file,
+    description=ubxAltText,
+    mime_type="image/png"
+)
+
+res_mastodon_main = mastodon.status_post(
+    (ubxLinkName + "\n" + "source: " + ubxLinkHref),
+    media_ids=[res_mastodon_media.id]
+)
+
+print("Toot complete.")
